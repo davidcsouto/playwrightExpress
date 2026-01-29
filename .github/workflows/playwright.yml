@@ -40,16 +40,24 @@ jobs:
         working-directory: apps/api
 
       - name: Start API server
-        run: npm run dev &
+        run: npm run dev > /tmp/api.log 2>&1 &
         working-directory: apps/api
 
       - name: Start Web server
-        run: npm run dev &
+        run: npm run dev > /tmp/web.log 2>&1 &
         working-directory: apps/web
 
       - name: Wait for servers to be ready
         run: |
-          npx wait-on http://localhost:3333 http://localhost:3000 --timeout 30000
+          sleep 5
+          npx wait-on http://localhost:3333 http://localhost:3000 --timeout 60000
+          if [ $? -ne 0 ]; then
+            echo "API Server Log:"
+            cat /tmp/api.log || echo "No API log found"
+            echo "Web Server Log:"
+            cat /tmp/web.log || echo "No Web log found"
+            exit 1
+          fi
 
       - name: Run Playwright tests
         run: npm test
